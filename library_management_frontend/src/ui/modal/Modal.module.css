@@ -1,0 +1,58 @@
+@import "../../colors.css";
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background-color: rgba(0, 0, 0, 0.55);
+}
+
+.window {
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background-color: var(--color-primary);
+    border: 1px solid var(--color-accent);
+    border-radius: 12px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--color-accent);
+}
+
+.title {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.closeButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    background-color: transparent;
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+.closeButton:hover {
+    background-color: var(--color-accent);
+}
+
+.body {
+    padding: 16px;
+}
