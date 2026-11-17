@@ -1,13 +1,11 @@
 import { For, Show, createSignal } from "solid-js";
 import type { JSX } from "solid-js";
 import { FiCheck, FiEdit2, FiPlus, FiTrash2 } from "solid-icons/fi";
-
 import { mockPublishers } from "../data/mocks";
 import type { Publisher } from "../data/types";
 import { formatDate } from "../lib/formatDate";
 import { ConfirmDialog } from "../ui/modal/ConfirmDialog";
 import { Modal } from "../ui/modal/Modal";
-
 import styles from "../ui/pages.module.css";
 
 interface PublisherFormErrors {
@@ -15,21 +13,29 @@ interface PublisherFormErrors {
     address?: string;
 }
 
+const cancelButtonStyle: JSX.CSSProperties = {
+    padding: "10px 16px",
+    "border-radius": "8px",
+    border: "1px solid var(--color-accent)",
+    "background-color": "transparent",
+    color: "var(--color-text)",
+    font: "inherit",
+    cursor: "pointer",
+};
+
 export function PublishersPage(): JSX.Element {
     const [publishers, setPublishers] = createSignal<Publisher[]>(mockPublishers);
     const [publisherName, setPublisherName] = createSignal("");
     const [publisherAddress, setPublisherAddress] = createSignal("");
     const [errors, setErrors] = createSignal<PublisherFormErrors>({});
     const [feedback, setFeedback] = createSignal("");
-
     const [editingPublisher, setEditingPublisher] = createSignal<Publisher | null>(null);
     const [deletingPublisher, setDeletingPublisher] = createSignal<Publisher | null>(null);
     const [editName, setEditName] = createSignal("");
     const [editAddress, setEditAddress] = createSignal("");
     const [editErrors, setEditErrors] = createSignal<PublisherFormErrors>({});
-
     const [selectedIds, setSelectedIds] = createSignal<string[]>([]);
-    const [bulkDeleteOpen, setBulkDeleteOpen] = createSignal(false);
+    const [publishersToDelete, setPublishersToDelete] = createSignal<Publisher[]>([]);
 
     function allSelected(): boolean {
         const ids = selectedIds();
@@ -57,36 +63,36 @@ export function PublishersPage(): JSX.Element {
 
     function handleRowDoubleClick(event: MouseEvent, id: string): void {
         const target = event.target;
-
         if (target instanceof Element && target.closest("input, button, select, a")) {
             return;
         }
-
         toggleRow(id);
+    }
+
+    function rowStyle(id: string): JSX.CSSProperties | undefined {
+        return selectedIds().includes(id)
+            ? {
+                  "background-color": "rgba(233, 69, 96, 0.12)",
+                  "box-shadow": "inset 3px 0 0 var(--color-highlight)",
+              }
+            : undefined;
     }
 
     function addPublisher(event: SubmitEvent): void {
         event.preventDefault();
-
         const name = publisherName().trim();
         const address = publisherAddress().trim();
-
         const nextErrors: PublisherFormErrors = {};
-
         if (name.length < 2 || name.length > 256) {
             nextErrors.name = "Наименование должно содержать от 2 до 256 символов";
         }
-
         if (address.length < 3 || address.length > 256) {
             nextErrors.address = "Адрес должен содержать от 3 до 256 символов";
         }
-
         setErrors(nextErrors);
-
         if (nextErrors.name || nextErrors.address) {
             return;
         }
-
         const newPublisher: Publisher = {
             id: crypto.randomUUID(),
             name,
@@ -95,9 +101,7 @@ export function PublishersPage(): JSX.Element {
             updated_at: null,
             deleted_at: null,
         };
-
         setPublishers((currentPublishers) => [...currentPublishers, newPublisher]);
-
         setPublisherName("");
         setPublisherAddress("");
         setFeedback("Издательство добавлено в список");
@@ -113,36 +117,30 @@ export function PublishersPage(): JSX.Element {
 
     function closeEdit(): void {
         setEditingPublisher(null);
+        setEditName("");
+        setEditAddress("");
+        setEditErrors({});
     }
 
     function saveEdit(event: SubmitEvent): void {
         event.preventDefault();
-
         const current = editingPublisher();
-
         if (!current) {
             return;
         }
-
         const name = editName().trim();
         const address = editAddress().trim();
-
         const nextErrors: PublisherFormErrors = {};
-
         if (name.length < 2 || name.length > 256) {
             nextErrors.name = "Наименование должно содержать от 2 до 256 символов";
         }
-
         if (address.length < 3 || address.length > 256) {
             nextErrors.address = "Адрес должен содержать от 3 до 256 символов";
         }
-
         setEditErrors(nextErrors);
-
         if (nextErrors.name || nextErrors.address) {
             return;
         }
-
         setPublishers((currentPublishers) =>
             currentPublishers.map((publisher) =>
                 publisher.id === current.id
@@ -150,42 +148,48 @@ export function PublishersPage(): JSX.Element {
                     : publisher,
             ),
         );
-
-        setEditingPublisher(null);
         setFeedback("Изменения сохранены");
+        closeEdit();
     }
 
     function confirmDelete(): void {
         const current = deletingPublisher();
-
         if (!current) {
             return;
         }
-
         setPublishers((currentPublishers) =>
             currentPublishers.filter((publisher) => publisher.id !== current.id),
         );
         setSelectedIds((currentIds) => currentIds.filter((id) => id !== current.id));
-
         setDeletingPublisher(null);
         setFeedback("Запись удалена");
     }
 
-    function confirmBulkDelete(): void {
+    function requestBulkDelete(): void {
         const ids = selectedIds();
-
-        if (ids.length === 0) {
-            setBulkDeleteOpen(false);
+        const chosen = publishers().filter((publisher) => ids.includes(publisher.id));
+        if (chosen.length === 0) {
             return;
         }
+        setPublishersToDelete(chosen);
+    }
 
+    function cancelBulkDelete(): void {
+        setPublishersToDelete([]);
+    }
+
+    function confirmBulkDelete(): void {
+        const chosen = publishersToDelete();
+        if (chosen.length === 0) {
+            return;
+        }
+        const idsToDelete = chosen.map((publisher) => publisher.id);
         setPublishers((currentPublishers) =>
-            currentPublishers.filter((publisher) => !ids.includes(publisher.id)),
+            currentPublishers.filter((publisher) => !idsToDelete.includes(publisher.id)),
         );
-
-        setSelectedIds([]);
-        setBulkDeleteOpen(false);
-        setFeedback(`Удалено записей: ${ids.length}`);
+        setSelectedIds((currentIds) => currentIds.filter((id) => !idsToDelete.includes(id)));
+        setPublishersToDelete([]);
+        setFeedback(`Удалено записей: ${idsToDelete.length}`);
     }
 
     return (
@@ -264,19 +268,22 @@ export function PublishersPage(): JSX.Element {
 
             <p class={styles.counter}>Всего записей: {publishers().length}</p>
 
-            <Show when={selectedIds().length > 0}>
-                <div class={styles.bulkBar}>
-                    <span class={styles.bulkText}>Выбрано записей: {selectedIds().length}</span>
-                    <button
-                        class={styles.bulkDeleteButton}
-                        type="button"
-                        onClick={() => setBulkDeleteOpen(true)}
-                    >
-                        <FiTrash2 size={16} aria-hidden="true" />
-                        Удалить выбранные
-                    </button>
-                </div>
-            </Show>
+            <div class={styles.bulkBar}>
+                <span class={styles.bulkText}>Выбрано записей: {selectedIds().length}</span>
+                <button
+                    class={styles.bulkDeleteButton}
+                    type="button"
+                    onClick={requestBulkDelete}
+                    disabled={selectedIds().length === 0}
+                    style={{
+                        opacity: selectedIds().length === 0 ? "0.45" : "1",
+                        cursor: selectedIds().length === 0 ? "not-allowed" : "pointer",
+                    }}
+                >
+                    <FiTrash2 size={16} aria-hidden="true" />
+                    Удалить выбранные
+                </button>
+            </div>
 
             <Show
                 when={publishers().length > 0}
@@ -310,6 +317,7 @@ export function PublishersPage(): JSX.Element {
                             <For each={publishers()}>
                                 {(publisher) => (
                                     <tr
+                                        style={rowStyle(publisher.id)}
                                         onDblClick={(event) =>
                                             handleRowDoubleClick(event, publisher.id)
                                         }
@@ -330,6 +338,7 @@ export function PublishersPage(): JSX.Element {
                                         <td>
                                             <div class={styles.rowActions}>
                                                 <button
+                                                    id={`publisher-edit-button-${publisher.id}`}
                                                     class={styles.iconButton}
                                                     type="button"
                                                     onClick={() => openEdit(publisher)}
@@ -365,6 +374,7 @@ export function PublishersPage(): JSX.Element {
                                 name="name"
                                 type="text"
                                 required
+                                autofocus
                                 minLength={2}
                                 maxLength={256}
                                 value={editName()}
@@ -410,12 +420,28 @@ export function PublishersPage(): JSX.Element {
                             </Show>
                         </div>
 
-                        <div class={styles.formActions}>
-                            <button class={styles.submitButton} type="submit">
-                                <FiCheck size={16} aria-hidden="true" />
-                                Сохранить изменения
-                            </button>
-                        </div>
+                        <div
+    class={styles.formActions}
+    style={{
+        display: "flex",
+        "justify-content": "flex-end",
+        "flex-wrap": "wrap",
+        gap: "10px",
+    }}
+>
+    <button class={styles.submitButton} type="submit">
+        <FiCheck size={16} aria-hidden="true" />
+        Сохранить изменения
+    </button>
+    <button
+        type="button"
+        style={cancelButtonStyle}
+        onClick={closeEdit}
+        aria-label="Отменить редактирование"
+    >
+        Отмена
+    </button>
+</div>
                     </form>
                 </Modal>
             </Show>
@@ -432,13 +458,15 @@ export function PublishersPage(): JSX.Element {
                 )}
             </Show>
 
-            <Show when={bulkDeleteOpen()}>
+            <Show when={publishersToDelete().length > 0}>
                 <ConfirmDialog
                     title="Массовое удаление"
-                    message={`Удалить выбранные записи (${selectedIds().length})?`}
+                    message={`Удалить выбранные записи (${publishersToDelete().length}): ${publishersToDelete()
+                        .map((publisher) => `«${publisher.name}»`)
+                        .join(", ")}?`}
                     confirmLabel="Удалить"
                     onConfirm={confirmBulkDelete}
-                    onCancel={() => setBulkDeleteOpen(false)}
+                    onCancel={cancelBulkDelete}
                 />
             </Show>
         </div>

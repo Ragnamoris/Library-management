@@ -16,6 +16,16 @@ interface BookFormErrors {
     inventory_number?: string;
 }
 
+const cancelButtonStyle: JSX.CSSProperties = {
+    padding: "10px 16px",
+    "border-radius": "8px",
+    border: "1px solid var(--color-accent)",
+    "background-color": "transparent",
+    color: "var(--color-text)",
+    font: "inherit",
+    cursor: "pointer",
+};
+
 export function BooksPage(): JSX.Element {
     const [books, setBooks] = createSignal<Book[]>(mockBooks);
     const [publisherId, setPublisherId] = createSignal("");
@@ -34,7 +44,7 @@ export function BooksPage(): JSX.Element {
     const [editInventory, setEditInventory] = createSignal("");
     const [editErrors, setEditErrors] = createSignal<BookFormErrors>({});
     const [selectedIds, setSelectedIds] = createSignal<string[]>([]);
-    const [bulkDeleteOpen, setBulkDeleteOpen] = createSignal(false);
+    const [booksToDelete, setBooksToDelete] = createSignal<Book[]>([]);
 
     function publisherName(id: string): string {
         const publisher = mockPublishers.find((item) => item.id === id);
@@ -60,6 +70,23 @@ export function BooksPage(): JSX.Element {
                 ? current.filter((item) => item !== id)
                 : [...current, id],
         );
+    }
+
+    function handleRowDoubleClick(event: MouseEvent, id: string): void {
+        const target = event.target;
+        if (target instanceof Element && target.closest("input, button, select, a")) {
+            return;
+        }
+        toggleRow(id);
+    }
+
+    function rowStyle(id: string): JSX.CSSProperties | undefined {
+        return selectedIds().includes(id)
+            ? {
+                  "background-color": "rgba(233, 69, 96, 0.12)",
+                  "box-shadow": "inset 3px 0 0 var(--color-highlight)",
+              }
+            : undefined;
     }
 
     function addBook(event: SubmitEvent): void {
@@ -129,16 +156,14 @@ export function BooksPage(): JSX.Element {
         setFeedback("");
     }
 
-    function handleRowDoubleClick(event: MouseEvent, id: string): void {
-        const target = event.target;
-        if (target instanceof Element && target.closest("input, button, select, a")) {
-            return;
-        }
-        toggleRow(id);
-    }
-
     function closeEdit(): void {
         setEditingBook(null);
+        setEditPublisherId("");
+        setEditTitle("");
+        setEditAuthor("");
+        setEditYear("");
+        setEditInventory("");
+        setEditErrors({});
     }
 
     function saveEdit(event: SubmitEvent): void {
@@ -200,8 +225,8 @@ export function BooksPage(): JSX.Element {
                     : book,
             ),
         );
-        setEditingBook(null);
         setFeedback("Изменения сохранены");
+        closeEdit();
     }
 
     function confirmDelete(): void {
@@ -215,16 +240,31 @@ export function BooksPage(): JSX.Element {
         setFeedback("Запись удалена");
     }
 
-    function confirmBulkDelete(): void {
+    function requestBulkDelete(): void {
         const ids = selectedIds();
-        if (ids.length === 0) {
-            setBulkDeleteOpen(false);
+        const chosen = books().filter((book) => ids.includes(book.id));
+        if (chosen.length === 0) {
             return;
         }
-        setBooks((currentBooks) => currentBooks.filter((book) => !ids.includes(book.id)));
-        setSelectedIds([]);
-        setBulkDeleteOpen(false);
-        setFeedback(`Удалено записей: ${ids.length}`);
+        setBooksToDelete(chosen);
+    }
+
+    function cancelBulkDelete(): void {
+        setBooksToDelete([]);
+    }
+
+    function confirmBulkDelete(): void {
+        const chosen = booksToDelete();
+        if (chosen.length === 0) {
+            return;
+        }
+        const idsToDelete = chosen.map((book) => book.id);
+        setBooks((currentBooks) =>
+            currentBooks.filter((book) => !idsToDelete.includes(book.id)),
+        );
+        setSelectedIds((currentIds) => currentIds.filter((id) => !idsToDelete.includes(id)));
+        setBooksToDelete([]);
+        setFeedback(`Удалено записей: ${idsToDelete.length}`);
     }
 
     return (
@@ -376,19 +416,22 @@ export function BooksPage(): JSX.Element {
 
             <p class={styles.counter}>Всего записей: {books().length}</p>
 
-            <Show when={selectedIds().length > 0}>
-                <div class={styles.bulkBar}>
-                    <span class={styles.bulkText}>Выбрано записей: {selectedIds().length}</span>
-                    <button
-                        class={styles.bulkDeleteButton}
-                        type="button"
-                        onClick={() => setBulkDeleteOpen(true)}
-                    >
-                        <FiTrash2 size={16} aria-hidden="true" />
-                        Удалить выбранные
-                    </button>
-                </div>
-            </Show>
+            <div class={styles.bulkBar}>
+                <span class={styles.bulkText}>Выбрано записей: {selectedIds().length}</span>
+                <button
+                    class={styles.bulkDeleteButton}
+                    type="button"
+                    onClick={requestBulkDelete}
+                    disabled={selectedIds().length === 0}
+                    style={{
+                        opacity: selectedIds().length === 0 ? "0.45" : "1",
+                        cursor: selectedIds().length === 0 ? "not-allowed" : "pointer",
+                    }}
+                >
+                    <FiTrash2 size={16} aria-hidden="true" />
+                    Удалить выбранные
+                </button>
+            </div>
 
             <Show when={books().length > 0} fallback={<p class={styles.empty}>Книг пока нет</p>}>
                 <div class={styles.tableScroll}>
@@ -421,7 +464,10 @@ export function BooksPage(): JSX.Element {
                         <tbody>
                             <For each={books()}>
                                 {(book) => (
-                                    <tr onDblClick={(event) => handleRowDoubleClick(event, book.id)}>
+                                    <tr
+                                        style={rowStyle(book.id)}
+                                        onDblClick={(event) => handleRowDoubleClick(event, book.id)}
+                                    >
                                         <td class={styles.checkboxColumn}>
                                             <input
                                                 type="checkbox"
@@ -441,6 +487,7 @@ export function BooksPage(): JSX.Element {
                                         <td>
                                             <div class={styles.rowActions}>
                                                 <button
+                                                    id={`book-edit-button-${book.id}`}
                                                     class={styles.iconButton}
                                                     type="button"
                                                     onClick={() => openEdit(book)}
@@ -502,6 +549,7 @@ export function BooksPage(): JSX.Element {
                                 name="title"
                                 type="text"
                                 required
+                                autofocus
                                 minLength={2}
                                 maxLength={256}
                                 value={editTitle()}
@@ -590,12 +638,28 @@ export function BooksPage(): JSX.Element {
                             </Show>
                         </div>
 
-                        <div class={styles.formActions}>
-                            <button class={styles.submitButton} type="submit">
-                                <FiCheck size={16} aria-hidden="true" />
-                                Сохранить изменения
-                            </button>
-                        </div>
+                        <div
+    class={styles.formActions}
+    style={{
+        display: "flex",
+        "justify-content": "flex-end",
+        "flex-wrap": "wrap",
+        gap: "10px",
+    }}
+>
+    <button class={styles.submitButton} type="submit">
+        <FiCheck size={16} aria-hidden="true" />
+        Сохранить изменения
+    </button>
+    <button
+        type="button"
+        style={cancelButtonStyle}
+        onClick={closeEdit}
+        aria-label="Отменить редактирование"
+    >
+        Отмена
+    </button>
+</div>
                     </form>
                 </Modal>
             </Show>
@@ -612,13 +676,15 @@ export function BooksPage(): JSX.Element {
                 )}
             </Show>
 
-            <Show when={bulkDeleteOpen()}>
+            <Show when={booksToDelete().length > 0}>
                 <ConfirmDialog
                     title="Массовое удаление"
-                    message={`Удалить выбранные записи (${selectedIds().length})?`}
+                    message={`Удалить выбранные записи (${booksToDelete().length}): ${booksToDelete()
+                        .map((book) => `«${book.title}»`)
+                        .join(", ")}?`}
                     confirmLabel="Удалить"
                     onConfirm={confirmBulkDelete}
-                    onCancel={() => setBulkDeleteOpen(false)}
+                    onCancel={cancelBulkDelete}
                 />
             </Show>
         </div>

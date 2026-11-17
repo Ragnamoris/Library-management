@@ -18,6 +18,23 @@ interface LoanFormErrors {
 const LOAN_TERM_DAYS = 20;
 const READER_LIMIT = 5;
 
+const cancelButtonStyle: JSX.CSSProperties = {
+    padding: "10px 16px",
+    "border-radius": "8px",
+    border: "1px solid var(--color-accent)",
+    "background-color": "transparent",
+    color: "var(--color-text)",
+    font: "inherit",
+    cursor: "pointer",
+};
+
+const editActionsStyle: JSX.CSSProperties = {
+    display: "flex",
+    "justify-content": "flex-end",
+    "flex-wrap": "wrap",
+    gap: "10px",
+};
+
 function toIsoDate(dateValue: string): string {
     return `${dateValue}T00:00:00.000Z`;
 }
@@ -47,7 +64,7 @@ export function LoansPage(): JSX.Element {
     const [editReturnDate, setEditReturnDate] = createSignal("");
     const [editErrors, setEditErrors] = createSignal<LoanFormErrors>({});
     const [selectedIds, setSelectedIds] = createSignal<string[]>([]);
-    const [bulkDeleteOpen, setBulkDeleteOpen] = createSignal(false);
+    const [loansToDelete, setLoansToDelete] = createSignal<Loan[]>([]);
 
     function bookLabel(id: string): string {
         const book = mockBooks.find((item) => item.id === id);
@@ -127,6 +144,23 @@ export function LoansPage(): JSX.Element {
         );
     }
 
+    function handleRowDoubleClick(event: MouseEvent, id: string): void {
+        const target = event.target;
+        if (target instanceof Element && target.closest("input, button, select, a")) {
+            return;
+        }
+        toggleRow(id);
+    }
+
+    function rowStyle(id: string): JSX.CSSProperties | undefined {
+        return selectedIds().includes(id)
+            ? {
+                  "background-color": "rgba(233, 69, 96, 0.12)",
+                  "box-shadow": "inset 3px 0 0 var(--color-highlight)",
+              }
+            : undefined;
+    }
+
     function addLoan(event: SubmitEvent): void {
         event.preventDefault();
         const nextBookId = bookId();
@@ -178,16 +212,13 @@ export function LoansPage(): JSX.Element {
         setFeedback("");
     }
 
-    function handleRowDoubleClick(event: MouseEvent, id: string): void {
-        const target = event.target;
-        if (target instanceof Element && target.closest("input, button, select, a")) {
-            return;
-        }
-        toggleRow(id);
-    }
-
     function closeEdit(): void {
         setEditingLoan(null);
+        setEditBookId("");
+        setEditReaderId("");
+        setEditIssueDate("");
+        setEditReturnDate("");
+        setEditErrors({});
     }
 
     function saveEdit(event: SubmitEvent): void {
@@ -241,8 +272,8 @@ export function LoansPage(): JSX.Element {
                     : loan,
             ),
         );
-        setEditingLoan(null);
         setFeedback("Изменения сохранены");
+        closeEdit();
     }
 
     function confirmDelete(): void {
@@ -256,16 +287,31 @@ export function LoansPage(): JSX.Element {
         setFeedback("Запись удалена");
     }
 
-    function confirmBulkDelete(): void {
+    function requestBulkDelete(): void {
         const ids = selectedIds();
-        if (ids.length === 0) {
-            setBulkDeleteOpen(false);
+        const chosen = loans().filter((loan) => ids.includes(loan.id));
+        if (chosen.length === 0) {
             return;
         }
-        setLoans((currentLoans) => currentLoans.filter((loan) => !ids.includes(loan.id)));
-        setSelectedIds([]);
-        setBulkDeleteOpen(false);
-        setFeedback(`Удалено записей: ${ids.length}`);
+        setLoansToDelete(chosen);
+    }
+
+    function cancelBulkDelete(): void {
+        setLoansToDelete([]);
+    }
+
+    function confirmBulkDelete(): void {
+        const chosen = loansToDelete();
+        if (chosen.length === 0) {
+            return;
+        }
+        const idsToDelete = chosen.map((loan) => loan.id);
+        setLoans((currentLoans) =>
+            currentLoans.filter((loan) => !idsToDelete.includes(loan.id)),
+        );
+        setSelectedIds((currentIds) => currentIds.filter((id) => !idsToDelete.includes(id)));
+        setLoansToDelete([]);
+        setFeedback(`Удалено записей: ${idsToDelete.length}`);
     }
 
     return (
@@ -377,19 +423,22 @@ export function LoansPage(): JSX.Element {
 
             <p class={styles.counter}>Всего записей: {loans().length}</p>
 
-            <Show when={selectedIds().length > 0}>
-                <div class={styles.bulkBar}>
-                    <span class={styles.bulkText}>Выбрано записей: {selectedIds().length}</span>
-                    <button
-                        class={styles.bulkDeleteButton}
-                        type="button"
-                        onClick={() => setBulkDeleteOpen(true)}
-                    >
-                        <FiTrash2 size={16} aria-hidden="true" />
-                        Удалить выбранные
-                    </button>
-                </div>
-            </Show>
+            <div class={styles.bulkBar}>
+                <span class={styles.bulkText}>Выбрано записей: {selectedIds().length}</span>
+                <button
+                    class={styles.bulkDeleteButton}
+                    type="button"
+                    onClick={requestBulkDelete}
+                    disabled={selectedIds().length === 0}
+                    style={{
+                        opacity: selectedIds().length === 0 ? "0.45" : "1",
+                        cursor: selectedIds().length === 0 ? "not-allowed" : "pointer",
+                    }}
+                >
+                    <FiTrash2 size={16} aria-hidden="true" />
+                    Удалить выбранные
+                </button>
+            </div>
 
             <Show when={loans().length > 0} fallback={<p class={styles.empty}>Выдач пока нет</p>}>
                 <div class={styles.tableScroll}>
@@ -423,7 +472,10 @@ export function LoansPage(): JSX.Element {
                         <tbody>
                             <For each={loans()}>
                                 {(loan) => (
-                                    <tr onDblClick={(event) => handleRowDoubleClick(event, loan.id)}>
+                                    <tr
+                                        style={rowStyle(loan.id)}
+                                        onDblClick={(event) => handleRowDoubleClick(event, loan.id)}
+                                    >
                                         <td class={styles.checkboxColumn}>
                                             <input
                                                 type="checkbox"
@@ -446,6 +498,7 @@ export function LoansPage(): JSX.Element {
                                         <td>
                                             <div class={styles.rowActions}>
                                                 <button
+                                                    id={`loan-edit-button-${loan.id}`}
                                                     class={styles.iconButton}
                                                     type="button"
                                                     onClick={() => openEdit(loan)}
@@ -479,6 +532,7 @@ export function LoansPage(): JSX.Element {
                             <select
                                 id="loan-edit-book"
                                 name="book_id"
+                                autofocus
                                 value={editBookId()}
                                 onInput={(event) => setEditBookId(event.currentTarget.value)}
                                 aria-invalid={editErrors().book_id ? true : undefined}
@@ -590,12 +644,28 @@ export function LoansPage(): JSX.Element {
                             </Show>
                         </div>
 
-                        <div class={styles.formActions}>
-                            <button class={styles.submitButton} type="submit">
-                                <FiCheck size={16} aria-hidden="true" />
-                                Сохранить изменения
-                            </button>
-                        </div>
+                        <div
+    class={styles.formActions}
+    style={{
+        display: "flex",
+        "justify-content": "flex-end",
+        "flex-wrap": "wrap",
+        gap: "10px",
+    }}
+>
+    <button class={styles.submitButton} type="submit">
+        <FiCheck size={16} aria-hidden="true" />
+        Сохранить изменения
+    </button>
+    <button
+        type="button"
+        style={cancelButtonStyle}
+        onClick={closeEdit}
+        aria-label="Отменить редактирование"
+    >
+        Отмена
+    </button>
+</div>
                     </form>
                 </Modal>
             </Show>
@@ -612,13 +682,15 @@ export function LoansPage(): JSX.Element {
                 )}
             </Show>
 
-            <Show when={bulkDeleteOpen()}>
+            <Show when={loansToDelete().length > 0}>
                 <ConfirmDialog
                     title="Массовое удаление"
-                    message={`Удалить выбранные записи (${selectedIds().length})?`}
+                    message={`Удалить выбранные записи (${loansToDelete().length}): ${loansToDelete()
+                        .map((loan) => `«${bookLabel(loan.book_id)} — ${readerLabel(loan.reader_id)}»`)
+                        .join(", ")}?`}
                     confirmLabel="Удалить"
                     onConfirm={confirmBulkDelete}
-                    onCancel={() => setBulkDeleteOpen(false)}
+                    onCancel={cancelBulkDelete}
                 />
             </Show>
         </div>

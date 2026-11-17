@@ -14,6 +14,16 @@ interface ReaderFormErrors {
     card_number?: string;
 }
 
+const cancelButtonStyle: JSX.CSSProperties = {
+    padding: "10px 16px",
+    "border-radius": "8px",
+    border: "1px solid var(--color-accent)",
+    "background-color": "transparent",
+    color: "var(--color-text)",
+    font: "inherit",
+    cursor: "pointer",
+};
+
 export function ReadersPage(): JSX.Element {
     const [readers, setReaders] = createSignal<Reader[]>(mockReaders);
     const [fullName, setFullName] = createSignal("");
@@ -28,7 +38,7 @@ export function ReadersPage(): JSX.Element {
     const [editCardNumber, setEditCardNumber] = createSignal("");
     const [editErrors, setEditErrors] = createSignal<ReaderFormErrors>({});
     const [selectedIds, setSelectedIds] = createSignal<string[]>([]);
-    const [bulkDeleteOpen, setBulkDeleteOpen] = createSignal(false);
+    const [readersToDelete, setReadersToDelete] = createSignal<Reader[]>([]);
 
     function allSelected(): boolean {
         const ids = selectedIds();
@@ -49,6 +59,23 @@ export function ReadersPage(): JSX.Element {
                 ? current.filter((item) => item !== id)
                 : [...current, id],
         );
+    }
+
+    function handleRowDoubleClick(event: MouseEvent, id: string): void {
+        const target = event.target;
+        if (target instanceof Element && target.closest("input, button, select, a")) {
+            return;
+        }
+        toggleRow(id);
+    }
+
+    function rowStyle(id: string): JSX.CSSProperties | undefined {
+        return selectedIds().includes(id)
+            ? {
+                  "background-color": "rgba(233, 69, 96, 0.12)",
+                  "box-shadow": "inset 3px 0 0 var(--color-highlight)",
+              }
+            : undefined;
     }
 
     function addReader(event: SubmitEvent): void {
@@ -99,16 +126,12 @@ export function ReadersPage(): JSX.Element {
         setFeedback("");
     }
 
-    function handleRowDoubleClick(event: MouseEvent, id: string): void {
-        const target = event.target;
-        if (target instanceof Element && target.closest("input, button, select, a")) {
-            return;
-        }
-        toggleRow(id);
-    }
-
     function closeEdit(): void {
         setEditingReader(null);
+        setEditFullName("");
+        setEditPhone("");
+        setEditCardNumber("");
+        setEditErrors({});
     }
 
     function saveEdit(event: SubmitEvent): void {
@@ -157,8 +180,8 @@ export function ReadersPage(): JSX.Element {
                     : reader,
             ),
         );
-        setEditingReader(null);
         setFeedback("Изменения сохранены");
+        closeEdit();
     }
 
     function confirmDelete(): void {
@@ -172,16 +195,31 @@ export function ReadersPage(): JSX.Element {
         setFeedback("Запись удалена");
     }
 
-    function confirmBulkDelete(): void {
+    function requestBulkDelete(): void {
         const ids = selectedIds();
-        if (ids.length === 0) {
-            setBulkDeleteOpen(false);
+        const chosen = readers().filter((reader) => ids.includes(reader.id));
+        if (chosen.length === 0) {
             return;
         }
-        setReaders((currentReaders) => currentReaders.filter((reader) => !ids.includes(reader.id)));
-        setSelectedIds([]);
-        setBulkDeleteOpen(false);
-        setFeedback(`Удалено записей: ${ids.length}`);
+        setReadersToDelete(chosen);
+    }
+
+    function cancelBulkDelete(): void {
+        setReadersToDelete([]);
+    }
+
+    function confirmBulkDelete(): void {
+        const chosen = readersToDelete();
+        if (chosen.length === 0) {
+            return;
+        }
+        const idsToDelete = chosen.map((reader) => reader.id);
+        setReaders((currentReaders) =>
+            currentReaders.filter((reader) => !idsToDelete.includes(reader.id)),
+        );
+        setSelectedIds((currentIds) => currentIds.filter((id) => !idsToDelete.includes(id)));
+        setReadersToDelete([]);
+        setFeedback(`Удалено записей: ${idsToDelete.length}`);
     }
 
     return (
@@ -285,19 +323,22 @@ export function ReadersPage(): JSX.Element {
 
             <p class={styles.counter}>Всего записей: {readers().length}</p>
 
-            <Show when={selectedIds().length > 0}>
-                <div class={styles.bulkBar}>
-                    <span class={styles.bulkText}>Выбрано записей: {selectedIds().length}</span>
-                    <button
-                        class={styles.bulkDeleteButton}
-                        type="button"
-                        onClick={() => setBulkDeleteOpen(true)}
-                    >
-                        <FiTrash2 size={16} aria-hidden="true" />
-                        Удалить выбранные
-                    </button>
-                </div>
-            </Show>
+            <div class={styles.bulkBar}>
+                <span class={styles.bulkText}>Выбрано записей: {selectedIds().length}</span>
+                <button
+                    class={styles.bulkDeleteButton}
+                    type="button"
+                    onClick={requestBulkDelete}
+                    disabled={selectedIds().length === 0}
+                    style={{
+                        opacity: selectedIds().length === 0 ? "0.45" : "1",
+                        cursor: selectedIds().length === 0 ? "not-allowed" : "pointer",
+                    }}
+                >
+                    <FiTrash2 size={16} aria-hidden="true" />
+                    Удалить выбранные
+                </button>
+            </div>
 
             <Show
                 when={readers().length > 0}
@@ -331,7 +372,10 @@ export function ReadersPage(): JSX.Element {
                         <tbody>
                             <For each={readers()}>
                                 {(reader) => (
-                                    <tr onDblClick={(event) => handleRowDoubleClick(event, reader.id)}>
+                                    <tr
+                                        style={rowStyle(reader.id)}
+                                        onDblClick={(event) => handleRowDoubleClick(event, reader.id)}
+                                    >
                                         <td class={styles.checkboxColumn}>
                                             <input
                                                 type="checkbox"
@@ -349,6 +393,7 @@ export function ReadersPage(): JSX.Element {
                                         <td>
                                             <div class={styles.rowActions}>
                                                 <button
+                                                    id={`reader-edit-button-${reader.id}`}
                                                     class={styles.iconButton}
                                                     type="button"
                                                     onClick={() => openEdit(reader)}
@@ -384,6 +429,7 @@ export function ReadersPage(): JSX.Element {
                                 name="full_name"
                                 type="text"
                                 required
+                                autofocus
                                 minLength={2}
                                 maxLength={128}
                                 value={editFullName()}
@@ -454,12 +500,28 @@ export function ReadersPage(): JSX.Element {
                             </Show>
                         </div>
 
-                        <div class={styles.formActions}>
-                            <button class={styles.submitButton} type="submit">
-                                <FiCheck size={16} aria-hidden="true" />
-                                Сохранить изменения
-                            </button>
-                        </div>
+                        <div
+    class={styles.formActions}
+    style={{
+        display: "flex",
+        "justify-content": "flex-end",
+        "flex-wrap": "wrap",
+        gap: "10px",
+    }}
+>
+    <button class={styles.submitButton} type="submit">
+        <FiCheck size={16} aria-hidden="true" />
+        Сохранить изменения
+    </button>
+    <button
+        type="button"
+        style={cancelButtonStyle}
+        onClick={closeEdit}
+        aria-label="Отменить редактирование"
+    >
+        Отмена
+    </button>
+</div>
                     </form>
                 </Modal>
             </Show>
@@ -476,13 +538,15 @@ export function ReadersPage(): JSX.Element {
                 )}
             </Show>
 
-            <Show when={bulkDeleteOpen()}>
+            <Show when={readersToDelete().length > 0}>
                 <ConfirmDialog
                     title="Массовое удаление"
-                    message={`Удалить выбранные записи (${selectedIds().length})?`}
+                    message={`Удалить выбранные записи (${readersToDelete().length}): ${readersToDelete()
+                        .map((reader) => `«${reader.full_name}»`)
+                        .join(", ")}?`}
                     confirmLabel="Удалить"
                     onConfirm={confirmBulkDelete}
-                    onCancel={() => setBulkDeleteOpen(false)}
+                    onCancel={cancelBulkDelete}
                 />
             </Show>
         </div>
