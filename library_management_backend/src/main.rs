@@ -1,5 +1,6 @@
 mod contracts;
 mod contracts_impl;
+#[allow(dead_code, unused_imports)]
 mod entities;
 mod http;
 mod seed;

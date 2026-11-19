@@ -6,6 +6,9 @@ pub mod name;
 pub mod phone_number;
 pub mod publication_year;
 pub mod record_lifetime;
+pub mod login;
+pub mod password_hash;
+pub mod staff_role;
 
 pub use address::*;
 pub use card_number::*;
@@ -15,3 +18,6 @@ pub use name::*;
 pub use phone_number::*;
 pub use publication_year::*;
 pub use record_lifetime::*;
+pub use login::{Login, LoginError};
+pub use password_hash::{PasswordHash, PasswordHashError};
+pub use staff_role::{StaffRole, StaffRoleError};

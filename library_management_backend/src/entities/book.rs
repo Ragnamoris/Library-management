@@ -60,4 +60,32 @@ impl Book {
             record_lifetime,
         }
     }
+
+        pub fn id(&self) -> EntityId {
+        self.id
+    }
+
+    pub fn publisher_id(&self) -> EntityId {
+        self.publisher_id
+    }
+
+    pub fn title(&self) -> &Name {
+        &self.title
+    }
+
+    pub fn author(&self) -> &Name {
+        &self.author
+    }
+
+    pub fn publication_year(&self) -> PublicationYear {
+        self.publication_year
+    }
+
+    pub fn inventory_number(&self) -> &InventoryNumber {
+        &self.inventory_number
+    }
+
+    pub fn record_lifetime(&self) -> &RecordLifetime {
+        &self.record_lifetime
+    }
 }

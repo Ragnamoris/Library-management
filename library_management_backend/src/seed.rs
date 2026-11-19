@@ -44,10 +44,10 @@ pub async fn run(pool: &Arc<ManagedConnectionPool>) -> StorageResult<()> {
             // Книга в фонде, но ещё ни разу не выдавалась:
             let _b10 = insert_book(&transaction, eksmo, "Дюна", "Ф. Герберт", 1965, "ИНВ-0010", now - Duration::days(10))?;
 
-            let r1 = insert_reader(&transaction, "Петров Пётр Петрович", "+7 (900) 111-22-33", "ЧБ-0001", now - Duration::days(150))?;
-            let r2 = insert_reader(&transaction, "Сидорова Анна Ивановна", "+7 (900) 444-55-66", "ЧБ-0002", now - Duration::days(120))?;
-            let r3 = insert_reader(&transaction, "Кузнецов Дмитрий Сергеевич", "+7 (900) 777-88-99", "ЧБ-0003", now - Duration::days(90))?;
-            let r4 = insert_reader(&transaction, "Волкова Мария Андреевна", "+7 (900) 123-45-67", "ЧБ-0004", now - Duration::days(30))?;
+                        let r1 = insert_reader(&transaction, "Петров Пётр Петрович", "79001112233", "ЧБ-0001", now - Duration::days(150))?;
+            let r2 = insert_reader(&transaction, "Сидорова Анна Ивановна", "79004445566", "ЧБ-0002", now - Duration::days(120))?;
+            let r3 = insert_reader(&transaction, "Кузнецов Дмитрий Сергеевич", "79007778899", "ЧБ-0003", now - Duration::days(90))?;
+            let r4 = insert_reader(&transaction, "Волкова Мария Андреевна", "79001234567", "ЧБ-0004", now - Duration::days(30))?;
 
             insert_loan(&transaction, b1, r1, now - Duration::days(30), Some(now - Duration::days(15)))?;
             insert_loan(&transaction, b2, r1, now - Duration::days(25), Some(now - Duration::days(2)))?;

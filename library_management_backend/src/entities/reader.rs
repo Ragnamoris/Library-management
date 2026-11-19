@@ -58,4 +58,24 @@ impl Reader {
             record_lifetime,
         }
     }
+
+        pub fn id(&self) -> EntityId {
+        self.id
+    }
+
+    pub fn full_name(&self) -> &Name {
+        &self.full_name
+    }
+
+    pub fn phone_number(&self) -> &PhoneNumber {
+        &self.phone_number
+    }
+
+    pub fn card_number(&self) -> &CardNumber {
+        &self.card_number
+    }
+
+    pub fn record_lifetime(&self) -> &RecordLifetime {
+        &self.record_lifetime
+    }
 }

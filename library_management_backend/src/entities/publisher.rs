@@ -48,4 +48,20 @@ impl Publisher {
             record_lifetime,
         }
     }
+
+        pub fn id(&self) -> EntityId {
+        self.id
+    }
+
+    pub fn name(&self) -> &Name {
+        &self.name
+    }
+
+    pub fn address(&self) -> &Address {
+        &self.address
+    }
+
+    pub fn record_lifetime(&self) -> &RecordLifetime {
+        &self.record_lifetime
+    }
 }
