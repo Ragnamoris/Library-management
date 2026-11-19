@@ -2,6 +2,7 @@ pub mod books;
 pub mod converter;
 pub mod loans;
 pub mod managed_connection_pool;
+pub mod migrations;
 pub mod publishers;
 pub mod readers;
 

@@ -36,10 +36,23 @@ impl ManagedConnectionPool {
 
     async fn create_connection(database_path: String) -> Client {
         let builder: ClientBuilder = ClientBuilder::new().path(database_path);
-        builder
+        let client = builder
             .open()
             .await
-            .expect("cannot open a database connection")
+            .expect("cannot open a database connection");
+
+        client
+            .conn(|connection| {
+                connection.execute_batch(
+                    "PRAGMA foreign_keys = ON;
+                     PRAGMA journal_mode = WAL;
+                     PRAGMA busy_timeout = 5000;",
+                )
+            })
+            .await
+            .expect("cannot configure a database connection");
+
+        client
     }
 
     pub async fn acquire_connection(&self) -> Result<Client, StorageError> {
