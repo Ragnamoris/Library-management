@@ -1,0 +1,130 @@
+import type { Book, Loan, Publisher, Reader } from "./types";
+
+export const mockPublishers: Publisher[] = [
+    {
+        id: "mock-publisher-1",
+        name: "Просвещение",
+        address: "г. Москва, ул. Кирова, д. 12",
+        created_at: "2025-09-01T10:00:00.000Z",
+        updated_at: null,
+        deleted_at: null,
+    },
+    {
+        id: "mock-publisher-2",
+        name: "Наука",
+        address: "г. Санкт-Петербург, Невский пр., д. 45",
+        created_at: "2025-10-15T08:30:00.000Z",
+        updated_at: "2026-02-01T12:00:00.000Z",
+        deleted_at: null,
+    },
+    {
+        id: "mock-publisher-3",
+        name: "Эксмо",
+        address: "г. Москва, Ленинградский пр., д. 78",
+        created_at: "2026-01-20T14:45:00.000Z",
+        updated_at: null,
+        deleted_at: null,
+    },
+];
+
+export const mockBooks: Book[] = [
+    {
+        id: "mock-book-1",
+        publisher_id: "mock-publisher-1",
+        title: "Мастер и Маргарита",
+        author: "М. А. Булгаков",
+        year: 2019,
+        inventory_number: "ИНВ-0001",
+        created_at: "2025-09-05T09:00:00.000Z",
+        updated_at: null,
+        deleted_at: null,
+    },
+    {
+        id: "mock-book-2",
+        publisher_id: "mock-publisher-2",
+        title: "Краткая история времени",
+        author: "С. Хокинг",
+        year: 2020,
+        inventory_number: "ИНВ-0002",
+        created_at: "2025-11-02T11:30:00.000Z",
+        updated_at: null,
+        deleted_at: null,
+    },
+    {
+        id: "mock-book-3",
+        publisher_id: "mock-publisher-3",
+        title: "Преступление и наказание",
+        author: "Ф. М. Достоевский",
+        year: 2018,
+        inventory_number: "ИНВ-0003",
+        created_at: "2026-02-10T15:20:00.000Z",
+        updated_at: "2026-03-01T10:00:00.000Z",
+        deleted_at: null,
+    },
+];
+
+export const mockReaders: Reader[] = [
+    {
+        id: "mock-reader-1",
+        full_name: "Иванов Иван Иванович",
+        phone: "+7 (900) 111-22-33",
+        card_number: "ЧБ-0001",
+        created_at: "2025-09-10T10:00:00.000Z",
+        updated_at: null,
+        deleted_at: null,
+    },
+    {
+        id: "mock-reader-2",
+        full_name: "Петрова Анна Сергеевна",
+        phone: "+7 (900) 444-55-66",
+        card_number: "ЧБ-0002",
+        created_at: "2025-12-01T09:40:00.000Z",
+        updated_at: null,
+        deleted_at: null,
+    },
+    {
+        id: "mock-reader-3",
+        full_name: "Сидоров Пётр Алексеевич",
+        phone: "+7 (900) 777-88-99",
+        card_number: "ЧБ-0003",
+        created_at: "2026-03-15T13:10:00.000Z",
+        updated_at: null,
+        deleted_at: null,
+    },
+];
+
+export const mockLoans: Loan[] = [
+    {
+        id: "mock-loan-1",
+        book_id: "mock-book-1",
+        reader_id: "mock-reader-1",
+        issued_at: "2026-10-20T09:00:00.000Z",
+        planned_return_at: "2026-11-09T09:00:00.000Z",
+        returned_at: "2026-11-05T12:00:00.000Z",
+        created_at: "2026-10-20T09:00:00.000Z",
+        updated_at: null,
+        deleted_at: null,
+    },
+    {
+        id: "mock-loan-2",
+        book_id: "mock-book-2",
+        reader_id: "mock-reader-2",
+        issued_at: "2026-10-10T10:30:00.000Z",
+        planned_return_at: "2026-10-30T10:30:00.000Z",
+        returned_at: null,
+        created_at: "2026-10-10T10:30:00.000Z",
+        updated_at: null,
+        deleted_at: null,
+    },
+    {
+        id: "mock-loan-3",
+        book_id: "mock-book-1",
+        reader_id: "mock-reader-3",
+        issued_at: "2026-11-10T14:00:00.000Z",
+        planned_return_at: "2026-11-30T14:00:00.000Z",
+        returned_at: null,
+        created_at: "2026-11-10T14:00:00.000Z",
+        updated_at: null,
+        deleted_at: null,
+    },
+];

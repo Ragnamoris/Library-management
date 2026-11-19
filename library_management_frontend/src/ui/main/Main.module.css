@@ -1,0 +1,7 @@
+@import "../../colors.css";
+
+.main {
+    grid-area: main;
+    padding: 24px;
+    overflow-y: auto;
+}
