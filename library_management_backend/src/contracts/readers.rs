@@ -10,6 +10,11 @@ pub trait ReadersStorage {
         &self,
         specification: ReaderSpecification,
     ) -> impl Future<Output = StorageResult<Option<Reader>>>;
+    fn list(
+        &self,
+        specification: ReaderSpecification,
+    ) -> impl Future<Output = StorageResult<Vec<Reader>>>;
+    fn count(&self, specification: ReaderSpecification) -> impl Future<Output = StorageResult<i64>>;
     fn update(&self, reader: &Reader) -> impl Future<Output = StorageResult<()>>;
     fn remove(&self, reader: Reader) -> impl Future<Output = StorageResult<()>>;
 }

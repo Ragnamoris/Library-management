@@ -266,7 +266,6 @@ mod tests {
     }
 
         fn sample_phone() -> PhoneNumber {
-        // PhoneNumber требует строго 11 цифр, начинающихся с 7: 7XXXXXXXXXX
         PhoneNumber::new("79001112233").unwrap()
     }
 

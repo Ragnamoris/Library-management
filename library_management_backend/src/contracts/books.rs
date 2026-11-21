@@ -10,6 +10,11 @@ pub trait BooksStorage {
         &self,
         specification: BookSpecification,
     ) -> impl Future<Output = StorageResult<Option<Book>>>;
+    fn list(
+        &self,
+        specification: BookSpecification,
+    ) -> impl Future<Output = StorageResult<Vec<Book>>>;
+    fn count(&self, specification: BookSpecification) -> impl Future<Output = StorageResult<i64>>;
     fn update(&self, book: &Book) -> impl Future<Output = StorageResult<()>>;
     fn remove(&self, book: Book) -> impl Future<Output = StorageResult<()>>;
 }

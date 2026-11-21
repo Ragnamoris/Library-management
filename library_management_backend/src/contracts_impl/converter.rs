@@ -5,8 +5,8 @@ use rusqlite::{
 use time::{format_description::well_known::Rfc3339, UtcDateTime};
 
 use crate::entities::value_objects::{
-    Address, CardNumber, EntityId, InventoryNumber, Name, PhoneNumber, PublicationYear,
-    RecordLifetime,
+    Address, CardNumber, EntityId, InventoryNumber, Login, Name, PasswordHash, PhoneNumber,
+    PublicationYear, RecordLifetime, StaffRole,
 };
 
 // ============= EntityId =============
@@ -209,4 +209,66 @@ pub fn parse_record_lifetime(
             Box::new(error),
         )
     })
+}
+
+// ============= Login =============
+
+impl From<Login> for Value {
+    fn from(value: Login) -> Self {
+        value.value().to_string().into()
+    }
+}
+
+impl ToSql for Login {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        Ok(ToSqlOutput::Borrowed(ValueRef::Text(self.value().as_bytes())))
+    }
+}
+
+impl FromSql for Login {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        let text: String = String::column_result(value)?;
+        Login::new(text).map_err(|error| FromSqlError::Other(Box::new(error)))
+    }
+}
+
+// ============= PasswordHash =============
+
+impl From<PasswordHash> for Value {
+    fn from(value: PasswordHash) -> Self {
+        value.value().to_string().into()
+    }
+}
+
+impl ToSql for PasswordHash {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        Ok(ToSqlOutput::Borrowed(ValueRef::Text(self.value().as_bytes())))
+    }
+}
+
+impl FromSql for PasswordHash {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        let text: String = String::column_result(value)?;
+        PasswordHash::from_hash(text).map_err(|error| FromSqlError::Other(Box::new(error)))
+    }
+}
+
+// ============= StaffRole =============
+impl From<StaffRole> for Value {
+    fn from(value: StaffRole) -> Self {
+        value.as_str().to_string().into()
+    }
+}
+
+impl ToSql for StaffRole {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        Ok(ToSqlOutput::Borrowed(ValueRef::Text(self.as_str().as_bytes())))
+    }
+}
+
+impl FromSql for StaffRole {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        let text: String = String::column_result(value)?;
+        StaffRole::parse(&text).map_err(|error| FromSqlError::Other(Box::new(error)))
+    }
 }

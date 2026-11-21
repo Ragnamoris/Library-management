@@ -1,7 +1,6 @@
 use async_sqlite::{Client, ClientBuilder};
 
 use crate::contracts::StorageError;
-use crate::contracts_impl::storage_err;
 
 type ManagedPool = (
     smol::channel::Sender<Client>,
@@ -55,13 +54,22 @@ impl ManagedConnectionPool {
         client
     }
 
-    pub async fn acquire_connection(&self) -> Result<Client, StorageError> {
-        let connection = self.pool.1.recv().await.map_err(storage_err)?;
+        pub async fn acquire_connection(&self) -> Result<Client, StorageError> {
+        let connection = self
+            .pool
+            .1
+            .recv()
+            .await
+            .map_err(|error| StorageError::Pool(error.to_string()))?;
         Ok(connection)
     }
 
     pub async fn return_connection(&self, connection: Client) -> Result<(), StorageError> {
-        self.pool.0.send(connection).await.map_err(storage_err)?;
+        self.pool
+            .0
+            .send(connection)
+            .await
+            .map_err(|error| StorageError::Pool(error.to_string()))?;
         Ok(())
     }
 

@@ -12,6 +12,11 @@ pub trait LoansStorage {
         &self,
         specification: LoanSpecification,
     ) -> impl Future<Output = StorageResult<Option<Loan>>>;
+    fn list(
+        &self,
+        specification: LoanSpecification,
+    ) -> impl Future<Output = StorageResult<Vec<Loan>>>;
+    fn count(&self, specification: LoanSpecification) -> impl Future<Output = StorageResult<i64>>;
     fn update(&self, loan: &Loan) -> impl Future<Output = StorageResult<()>>;
     fn remove(&self, loan: Loan) -> impl Future<Output = StorageResult<()>>;
     fn count_active_for_reader(&self, reader_id: Uuid) -> impl Future<Output = StorageResult<i64>>;

@@ -1,3 +1,6 @@
+//! Доменные ошибки предметной области.
+//! Путь файла: src/entities/errors.rs
+
 use crate::entities::book::BookError;
 use crate::entities::loan::LoanError;
 use crate::entities::publisher::PublisherError;
@@ -8,35 +11,31 @@ use crate::entities::value_objects::{
     PhoneNumberError, RecordLifetimeError, StaffRoleError,
 };
 
+/// Единая система ошибок предметной области.
+/// Домен не знает ни о HTTP, ни о SQL: он возвращает смысловую ошибку,
+/// а внешний слой сопоставляет её с кодом состояния ответа.
 #[derive(Debug, thiserror::Error)]
 pub enum DomainError {
-    /// Некорректные входные данные или нарушение инварианта объекта-значения.
     #[error("Некорректные данные: {0}")]
     Validation(String),
 
-    /// Сущность, необходимая для операции, не найдена.
     #[error("{0}")]
     NotFound(String),
 
-    /// Операция запрещена текущим состоянием предметной области.
     #[error("Нарушение правил предметной области: {0}")]
     Conflict(String),
 
-    /// Операция требует авторизации.
     #[error("Требуется авторизация")]
     Unauthorized,
 
-    /// Роль работника не позволяет выполнить операцию.
     #[error("Недостаточно прав доступа для выполнения операции")]
     Forbidden,
 
-    /// Ошибка уровня хранения данных.
     #[error("Ошибка хранилища данных: {0}")]
     Storage(String),
 }
 
 impl DomainError {
-    /// Оборачивает любую ошибку валидации в доменную ошибку.
     pub fn validation<E: std::fmt::Display>(error: E) -> Self {
         DomainError::Validation(error.to_string())
     }

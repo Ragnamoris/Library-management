@@ -1,4 +1,9 @@
+// Доменный слой и слой хранения реализованы на этапах 4–5 и подключаются
+// к обработчикам команд и запросов на этапе 6.
+// TODO(этап 6): снять атрибуты после подключения обработчиков use-case.
+#[allow(dead_code, unused_imports)]
 mod contracts;
+#[allow(dead_code, unused_imports)]
 mod contracts_impl;
 #[allow(dead_code, unused_imports)]
 mod entities;
